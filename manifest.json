@@ -1,9 +1,13 @@
 {
   "manifest_version": 3,
   "name": "YouTube Gesture Controller (Proto)",
-  "version": "0.0.4",
-  "description": "Prototype: Adding a popup toggle for gestures",
+  "version": "0.0.6",
+  "description": "Prototype: Adding the hand detection",
   "permissions": ["tabs", "storage"],
+  "host_permissions": ["*://*.youtube.com/*"], 
+  "content_security_policy": {
+  "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self';"
+  },
   "background": {
     "service_worker": "background.js"
   },
@@ -17,7 +21,21 @@
       "css": ["overlay.css"],
       "run_at": "document_idle"
     }
+  ], 
+
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "detector.html",
+        "detector.js",
+        "vendor/mediapipe/vision_bundle.mjs",
+        "vendor/mediapipe/wasm/*",
+        "vendor/mediapipe/hand_landmarker.task"
+      ],
+      "matches": ["*://www.youtube.com/*"]
+    }
   ],
+
   "commands": {
     "toggle-play-pause": {
       "suggested_key": {
