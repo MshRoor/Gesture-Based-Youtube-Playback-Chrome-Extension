@@ -37,6 +37,6 @@ Control YouTube playback with simple hand gestures — no keyboard or mouse need
 
 ---
 
-## 🤔 Did I miss anything?
+## Did I miss anything?
 
 If a step is unclear or wrong, please **open an issue** or submit a **PR**. Feedback is super welcome!
