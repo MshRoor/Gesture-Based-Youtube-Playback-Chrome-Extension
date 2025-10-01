@@ -147,12 +147,8 @@ function stopCamera() {
   if (detectorWin) detectorWin.postMessage({ type: "STOP" }, "*");
 }
 
-// Optional hygiene: stop camera if you leave the page or hide it for a while
+// stop camera if page is left
 window.addEventListener("pagehide", stopCamera);
-document.addEventListener("visibilitychange", () => {
-  // Keep this simple for now—don’t auto-stop on background, it can be annoying.
-  // Later we can pause if hidden for > N seconds.
-});
 
 let lastCountTs = 0;
 
