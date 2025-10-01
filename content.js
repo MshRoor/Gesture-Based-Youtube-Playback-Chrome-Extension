@@ -1,15 +1,15 @@
-// Check that we are on a YouTube page and our script is running.
+
 console.log("[YGCP] content.js loaded on", location.href);
 
-// --- Gesture config (tweakable) ---
-const ARM_ON_PRESENT_FRAMES = 10;  // ~0.5s if detector sends ~20 fps
-const REARM_ON_ABSENT_FRAMES = 10; // ~0.5s of no hands to re-arm
-const REQUIRED_HANDS = 1;          // use 2 if you want a two-hands gesture
+// Gesture config
+const ARM_ON_PRESENT_FRAMES = 10;
+const REARM_ON_ABSENT_FRAMES = 10;
+const REQUIRED_HANDS = 1;
 
-// --- Gesture state ---
+// Gesture state
 let gPresentStreak = 0;
 let gAbsentStreak  = 0;
-let gArmed         = true; // true = ready to trigger on next sustained-present
+let gArmed         = true;
 
 function getVideo() {
   return document.querySelector("video");
@@ -75,7 +75,7 @@ function ensureCamContainer() {
   const vid = document.createElement("video");
   vid.autoplay = true;
   vid.muted = true;                  // avoid feedback
-  vid.playsInline = true;            // iOS-friendly
+  vid.playsInline = true;
   div.appendChild(vid);
   document.body.appendChild(div);
   camContainer = div;
@@ -106,20 +106,6 @@ function ensureDetectorIframe() {
   });
 }
 
-let pageInjected = false;
-function injectPageScriptsOnce() {
-  if (pageInjected) return;
-  pageInjected = true;
-  chrome.runtime.sendMessage({ type: "INJECT_PAGE" }, (res) => {
-    console.log("inject response", res);
-  });
-}
-
-
-let handDetector = null;
-let lastHandCount = -1;
-let lastAnnounceTs = 0;
-
 async function startCamera() {
   if (camStream) return; // already running
   ensureCamContainer();
@@ -143,7 +129,6 @@ async function startCamera() {
 
     if (ygcpGesturesEnabled) {
     const w = await ensureDetectorIframe();
-    // if the iframe already booted we can START now; else BOOTED handler will do it
     if (detectorBooted) w.postMessage({ type: "START" }, "*")
   }
 }
@@ -162,31 +147,6 @@ function stopCamera() {
   if (detectorWin) detectorWin.postMessage({ type: "STOP" }, "*");
 }
 
-// Helper: lazy-init the detector once
-// async function ensureHandDetector() {
-//   if (handDetector) return handDetector;
-//   if (!window.YGCPDetector?.MpHandDetector) {
-//     console.warn("[YGCP] MP Detector script missing");
-//     return null;
-//   }
-//   const det = new YGCPDetector.MpHandDetector({ numHands: 2 });
-//   det.onModelLoad = () => console.log("[YGCP] MediaPipe Hand model loaded.");
-//   det.onError = (e) => console.warn("[YGCP] MP Detector error:", e);
-//   det.onHandCount = (count) => {
-//     // throttle overlay so we don't spam every frame
-//     const now = Date.now();
-//     if (count !== lastHandCount || now - lastAnnounceTs > 800) {
-//       flashOverlay(`Hands: ${count}`);
-//       lastHandCount = count;
-//       lastAnnounceTs = now;
-//     }
-//   };
-
-//   await det.init(camVideoEl);
-//   handDetector = det;
-//   return det;
-// }
-
 // Optional hygiene: stop camera if you leave the page or hide it for a while
 window.addEventListener("pagehide", stopCamera);
 document.addEventListener("visibilitychange", () => {
@@ -194,7 +154,6 @@ document.addEventListener("visibilitychange", () => {
   // Later we can pause if hidden for > N seconds.
 });
 
-let pageBooted = false;
 let lastCountTs = 0;
 
 window.addEventListener("message", (e) => {
@@ -214,10 +173,9 @@ window.addEventListener("message", (e) => {
 
   } else if (msg.type === "HAND_COUNT") {
     const c = Number.isFinite(msg.count) ? msg.count : 0;
-    latestHandCount = c; // for your debug ticker, keep this line if you added it
+    latestHandCount = c;
     console.log("[YGCP] HAND_COUNT:", c);
 
-    // --- Simple one-shot gesture on sustained presence ---
     if (c >= REQUIRED_HANDS) {
       gPresentStreak++;
       gAbsentStreak = 0;
@@ -240,7 +198,7 @@ window.addEventListener("message", (e) => {
     }
 
     const now = Date.now();
-    if (now - lastCountTs > 500) {                          // ~2x/sec
+    if (now - lastCountTs > 500) {
       flashOverlay(`Hands: ${latestHandCount}`);
       lastCountTs = now;
     }
@@ -261,11 +219,7 @@ chrome.runtime.onMessage.addListener((msg) => {
     if (ygcpGesturesEnabled) {
       startCamera().then(() => startDebugTicker())
                .catch(err => console.warn("[YGCP] Camera start failed:", err));
-
-      // Start detector if camera is already running
-      // ensureHandDetector().then(det => det && det.start());
     } else {
-      // if (handDetector) handDetector.stop();
       stopDebugTicker();
       stopCamera();
     }
@@ -281,18 +235,15 @@ chrome.runtime.onMessage.addListener((msg) => {
 });
 
 // Debug ticker state
-let latestHandCount = 0;      // last value we heard from the iframe
+let latestHandCount = 0;      // last value heard from the iframe
 let debugTicker = null;
-
-const DEBUG_OVERLAY_EVERY_MS = 700;   // how often to show the overlay
-const STALE_AFTER_MS = 1500;          // when to label it as stale
 
 function startDebugTicker() {
   if (debugTicker) return;
   debugTicker = setInterval(() => {
-    // Always repaint, even if it didn't change
+    // Always show number of hands even if it didn't change
     flashOverlay(`Hands: ${latestHandCount}`);
-  }, 700); // adjust cadence if you like
+  }, 700);
 }
 
 function stopDebugTicker() {

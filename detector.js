@@ -17,7 +17,6 @@ async function ensureSetup() {
   if (landmarker) return;
   const fileset = await vision.FilesetResolver.forVisionTasks(WASM_BASE);
 
-  // ← KEY CHANGE: use VIDEO mode and no resultCallback
   landmarker = await vision.HandLandmarker.createFromOptions(fileset, {
     baseOptions: { modelAssetPath: MODEL_URL },
     runningMode: "VIDEO",
@@ -38,7 +37,6 @@ function tick() {
   } catch (err) {
     parent.postMessage({ source: "YGCP-IFR", type: "ERROR", error: String(err) }, "*");
   } finally {
-    // drive it with a steady timer (20 fps)
     timerId = setTimeout(tick, 25);
   }
 }
@@ -47,19 +45,16 @@ async function start() {
   if (running) return;
   await ensureSetup();
 
-  // (re)create video and (re)attach stream as needed
   if (!video) {
     video = document.createElement("video");
     video.autoplay = true;
     video.muted = true;
     video.playsInline = true;
-
-    // (optional) append off-screen so some browsers keep it active
     Object.assign(video.style, {
-      position: "fixed", left: "-9999px", top: "-9999px", width: "1px", height: "1px", opacity: "0",
+      position: "fixed", left: "-9999px", top: "-9999px", width: "1px", height: "1px", opacity: "0", pointerEvents: "none"
     });
-    document.body.appendChild(video);
   }
+
   if (!video.srcObject) {
     const stream = await navigator.mediaDevices.getUserMedia({
       video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 }, facingMode: "user" },
@@ -67,16 +62,7 @@ async function start() {
     });
     video.srcObject = stream;
     await video.play();
-    Object.assign(video.style, {
-        position: "fixed",
-        left: "-9999px",
-        top: "-9999px",
-        width: "2px",
-        height: "2px",
-        opacity: "0",
-        pointerEvents: "none",
-        });
-        if (!video.isConnected) document.body.appendChild(video);
+    if (!video.isConnected) document.body.appendChild(video);
   }
 
   running = true;
@@ -92,7 +78,6 @@ function stop() {
   }
   if (video) {
     video.srcObject = null;
-    // leave element around; we’ll reuse it on next start
   }
 }
 
